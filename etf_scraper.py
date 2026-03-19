@@ -158,8 +158,8 @@ def fetch_allianz(etf_id: str) -> pd.DataFrame:
         except Exception:
             pass
 
-        # Step 2: 直接到 ETF 詳細頁
-        page.goto(f"https://etf.allianzgi.com.tw/etf-info/{fund_no}?tab=1",
+        # Step 2: 直接到 ETF 持股明細頁（tab=4）
+        page.goto(f"https://etf.allianzgi.com.tw/etf-info/{fund_no}?tab=4",
                   timeout=30000)
         page.wait_for_load_state("networkidle", timeout=15000)
         page.wait_for_timeout(5000)
@@ -172,7 +172,12 @@ def fetch_allianz(etf_id: str) -> pd.DataFrame:
     data = result["data"]
     rows = data["Entries"]["Data"]["Table"][1]["Rows"]
     try:
-        raw_date = data["Entries"]["Data"]["FundAsset"]["NavDate"]  # e.g. "2026/03/16"
+        # 優先用持股明細的日期（Table[1] 的 Date），再 fallback 到 NavDate
+        raw_date = (
+            data["Entries"]["Data"]["Table"][1].get("Date")
+            or data["Entries"]["Data"]["Table"][0].get("Date")
+            or data["Entries"]["Data"]["FundAsset"]["NavDate"]
+        )
         date_str = raw_date.replace("/", "-")
     except Exception:
         date_str = TODAY
